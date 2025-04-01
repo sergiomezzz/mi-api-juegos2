@@ -13,7 +13,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /games:
+ * /api/games:
  *   get:
  *     summary: Obtener todos los juegos del usuario
  *     tags: [Games]
@@ -27,19 +27,12 @@ const router = express.Router();
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Game'
- *       401:
- *         description: No autorizado (token inválido o no proporcionado)
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       500:
- *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *                 $ref: '#/components/schemas/Games'
+ *       401: 
+ *        description: No autorizado
+ * 
+ *        500:
+ *        description: Error del servidor  
  */
 router.get("/", auth, async (req, res) => {
     try {
@@ -52,7 +45,38 @@ router.get("/", auth, async (req, res) => {
 
 /**
  * @swagger
- * /games:
+ * /api/games/user:
+ *   get:
+ *     summary: Obtener todos los juegos del usuario autenticado
+ *     tags: [Games]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de juegos del usuario autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Games'
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error del servidor
+ */
+router.get("/user", auth, async (req, res) => {
+    try {
+        const games = await Game.find({ user: req.user.id });
+        res.json(games);
+    } catch (error) {
+        res.status(500).json({ msg: "Error obteniendo juegos del usuario: " + error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/games:
  *   post:
  *     summary: Crear un nuevo juego
  *     tags: [Games]
@@ -85,25 +109,16 @@ router.get("/", auth, async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Game'
+ *               $ref: '#/components/schemas/Games'
  *       400:
  *         description: Datos de entrada inválidos
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: No autorizado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: No tienes permiso para modificar este juego
+ *       404:
+ *         description: Juego no encontrado
  *       500:
  *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ 
  */
 router.post("/", auth, async (req, res) => {
     try {
@@ -126,7 +141,7 @@ router.post("/", auth, async (req, res) => {
 
 /**
  * @swagger
- * /games/{id}:
+ * /api/games/{id}:
  *   put:
  *     summary: Actualizar un juego existente
  *     tags: [Games]
@@ -164,7 +179,7 @@ router.post("/", auth, async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Game'
+ *               $ref: '#/components/schemas/Games'
  *       400:
  *         description: Datos de entrada inválidos
  *       403:
@@ -193,7 +208,7 @@ router.put("/:id", auth, async (req, res) => {
 
 /**
  * @swagger
- * /games/{id}:
+ * /api/games/{id}:
  *   delete:
  *     summary: Eliminar un juego
  *     tags: [Games]

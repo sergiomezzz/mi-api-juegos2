@@ -31,6 +31,28 @@ const options = {
           },
           required: ["title", "user"],
         },
+        // Error: {  // Agregamos el esquema Error
+        //   type: "object",
+        //   properties: {
+        //     message: { type: "string", example: "Datos de entrada inválidos" },
+        //     code: { type: "integer", example: 400 },
+        //   },
+        // },
+        // Error1: {  // Agregamos el esquema Error
+        //   type: "object",
+        //   properties: {
+        //     message: { type: "string", example: "No autorizado" },
+        //     code: { type: "integer", example: 401 },
+        //   },
+        // },
+        // Error2: {  // Agregamos el esquema Error
+        //   type: "object",
+        //   properties: {
+        //     message: { type: "string", example: "Error del servidor" },
+        //     code: { type: "integer", example: 500 },
+        //   },
+        // },
+        
       },
     },
     security: [{ bearerAuth: [] }],
