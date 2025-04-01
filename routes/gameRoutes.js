@@ -29,10 +29,9 @@ const router = express.Router();
  *               items:
  *                 $ref: '#/components/schemas/Games'
  *       401: 
- *        description: No autorizado
- * 
- *        500:
- *        description: Error del servidor  
+ *         description: No autorizado
+ *       500:
+ *         description: Error del servidor  
  */
 router.get("/", auth, async (req, res) => {
     try {
@@ -118,7 +117,6 @@ router.get("/user", auth, async (req, res) => {
  *         description: Juego no encontrado
  *       500:
  *         description: Error del servidor
- 
  */
 router.post("/", auth, async (req, res) => {
     try {

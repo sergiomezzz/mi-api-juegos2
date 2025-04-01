@@ -8,7 +8,7 @@ const options = {
       version: "1.0.0",
       description: "Una API para gestionar Juegos con autenticación JWT",
     },
-    servers: [{ url: "http://localhost:5000" }],
+    servers: [{ url: "https://mi-api-juegos2.onrender.com" }],
     components: {
       securitySchemes: {
         bearerAuth: {
