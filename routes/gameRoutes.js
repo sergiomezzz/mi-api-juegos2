@@ -4,14 +4,19 @@ const auth = require("../middleware/auth");
 
 const router = express.Router();
 
-// Obtener todas los juegos del usuario autenticado
+/**
+ * @swagger
+ * tags:
+ *   name: Games
+ *   description: Gestión de videojuegos del usuario
+ */
+
 /**
  * @swagger
  * /games:
  *   get:
+ *     summary: Obtener todos los juegos del usuario
  *     tags: [Games]
- *     summary: Obtener todas los juegos del usuario autenticado
- *     description: Retorna un listado de todas los juegos asociadas al usuario actualmente autenticado
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -24,27 +29,33 @@ const router = express.Router();
  *               items:
  *                 $ref: '#/components/schemas/Game'
  *       401:
- *         description: No autorizado
+ *         description: No autorizado (token inválido o no proporcionado)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get("/", auth, async (req, res) => {
     try {
-    const games = await Game.find({ user: req.user.id }); // Busca todas los juegos del usuario autenticado
-    res.json(games);
-  } catch (error) {
-    res.status(500).json({ msg: "Error obteniendo juegos"+error });
-  }
+        const games = await Game.find({ user: req.user.id });
+        res.json(games);
+    } catch (error) {
+        res.status(500).json({ msg: "Error obteniendo juegos: " + error.message });
+    }
 });
 
-// Crear un juego
 /**
  * @swagger
  * /games:
  *   post:
- *     tags: [Games]
  *     summary: Crear un nuevo juego
- *     description: Crea un nuevo juego asociado al usuario autenticado
+ *     tags: [Games]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -53,15 +64,21 @@ router.get("/", auth, async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - title
  *             properties:
  *               title:
  *                 type: string
- *                 description: Título del juego
- *                 example: "Mi juego"
+ *                 minLength: 3
+ *                 maxLength: 100
+ *                 example: "The Legend of Zelda"
  *               description:
  *                 type: string
- *                 description: Descripción del juego
- *                 example: "Descripción del juego"
+ *                 maxLength: 500
+ *                 example: "Un juego de aventura épica"
+ *               genre:
+ *                 type: string
+ *                 example: "Aventura"
  *     responses:
  *       201:
  *         description: Juego creado exitosamente
@@ -70,31 +87,49 @@ router.get("/", auth, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Game'
  *       400:
- *         description: Datos inválidos
+ *         description: Datos de entrada inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: No autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post("/", auth, async (req, res) => {
-  try {
-    const { title, description } = req.body;
-    if (!title) return res.status(400).json({ msg: "El título es obligatorio" });
+    try {
+        const { title, description, genre } = req.body;
+        if (!title) return res.status(400).json({ msg: "El título es obligatorio" });
 
-    const newGame = new Game({ title, description, user: req.user.id });
-    await newGame.save();
-    res.status(201).json(newGame);
-  } catch (error) {
-    res.status(500).json({ msg: "Error al crear el juego" });
-  }
+        const newGame = new Game({ 
+            title, 
+            description, 
+            genre,
+            user: req.user.id 
+        });
+        
+        await newGame.save();
+        res.status(201).json(newGame);
+    } catch (error) {
+        res.status(500).json({ msg: "Error al crear el juego: " + error.message });
+    }
 });
 
-// Actualizar un juego
 /**
  * @swagger
  * /games/{id}:
  *   put:
- *     tags: [Games]
  *     summary: Actualizar un juego existente
- *     description: Actualiza los datos de un juego asociado al usuario autenticado
+ *     tags: [Games]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -113,12 +148,16 @@ router.post("/", auth, async (req, res) => {
  *             properties:
  *               title:
  *                 type: string
- *                 description: Nuevo título del juego
- *                 example: "Nuevo título"
+ *                 minLength: 3
+ *                 maxLength: 100
+ *                 example: "Nuevo título del juego"
  *               description:
  *                 type: string
- *                 description: Nueva descripción del juego
- *                 example: "Nueva descripción"
+ *                 maxLength: 500
+ *                 example: "Nueva descripción del juego"
+ *               genre:
+ *                 type: string
+ *                 example: "Nuevo género"
  *     responses:
  *       200:
  *         description: Juego actualizado exitosamente
@@ -127,37 +166,37 @@ router.post("/", auth, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Game'
  *       400:
- *         description: Datos inválidos
+ *         description: Datos de entrada inválidos
+ *       403:
+ *         description: No tienes permiso para modificar este juego
  *       404:
  *         description: Juego no encontrado
- *       403:
- *         description: Acceso denegado
  *       500:
  *         description: Error del servidor
  */
 router.put("/:id", auth, async (req, res) => {
-  try {
-    const game = await Game.findById(req.params.id);
-    if (!game) return res.status(404).json({ msg: "juego no encontrado" });
-    if (game.user.toString() !== req.user.id) return res.status(403).json({ msg: "Acceso denegado" });
+    try {
+        const game = await Game.findById(req.params.id);
+        if (!game) return res.status(404).json({ msg: "Juego no encontrado" });
+        if (game.user.toString() !== req.user.id) return res.status(403).json({ msg: "Acceso denegado" });
 
-    game.title = req.body.title || game.title;
-    game.description = req.body.description || game.description;
-    await game.save();
-    res.json(game);
-  } catch (error) {
-    res.status(500).json({ msg: "Error actualizando el juego" });
-  }
+        game.title = req.body.title || game.title;
+        game.description = req.body.description || game.description;
+        game.genre = req.body.genre || game.genre;
+        
+        await game.save();
+        res.json(game);
+    } catch (error) {
+        res.status(500).json({ msg: "Error actualizando el juego: " + error.message });
+    }
 });
 
-// Eliminar un juego
 /**
  * @swagger
  * /games/{id}:
  *   delete:
- *     tags: [Games]
  *     summary: Eliminar un juego
- *     description: Elimina un juego asociado al usuario autenticado
+ *     tags: [Games]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -170,27 +209,32 @@ router.put("/:id", auth, async (req, res) => {
  *     responses:
  *       200:
  *         description: Juego eliminado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: "Juego eliminado correctamente"
+ *       403:
+ *         description: No tienes permiso para eliminar este juego
  *       404:
  *         description: Juego no encontrado
- *       403:
- *         description: Acceso denegado
  *       500:
  *         description: Error del servidor
  */
 router.delete("/:id", auth, async (req, res) => {
-  try {
-    const game = await Game.findById(req.params.id);
-    if (!game) return res.status(404).json({ msg: "juego no encontrado" });
-    if (game.user.toString() !== req.user.id) return res.status(403).json({ msg: "Acceso denegado" });
+    try {
+        const game = await Game.findById(req.params.id);
+        if (!game) return res.status(404).json({ msg: "Juego no encontrado" });
+        if (game.user.toString() !== req.user.id) return res.status(403).json({ msg: "Acceso denegado" });
 
-    await game.deleteOne();
-    res.json({ msg: "juego eliminado" });
-  } catch (error) {
-    res.status(500).json({ msg: "Error eliminando el juego" });
-  }
+        await game.deleteOne();
+        res.json({ msg: "Juego eliminado correctamente" });
+    } catch (error) {
+        res.status(500).json({ msg: "Error eliminando el juego: " + error.message });
+    }
 });
 
-// Obtener un juego por ID
-
 module.exports = router;
-  
